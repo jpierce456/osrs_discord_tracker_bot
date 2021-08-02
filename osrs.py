@@ -2,8 +2,9 @@ import http.client
 import math
 from sys import exit
 import time
+import boto3
 
-username = 'malfoy'
+username = 'hey_jase'
 conn = http.client.HTTPSConnection('secure.runescape.com')
 conn.request("GET", "/m=hiscore_oldschool/index_lite.ws?player={}".format(username.replace(' ', '%20')))
 response = conn.getresponse()
@@ -20,45 +21,44 @@ info['rank'] = data[0]
 info['level'] = data[1]
 info['experience'] = data[2]
 prev_subset['total'] = info
-skills = [
-			  'attack',
-		          'defense',
-		          'strength',
-		          'hitpoints',
-		          'ranged',
-		          'prayer',
-		          'magic',
-		          'cooking',
-		          'woodcutting',
-		          'fletching',
-		          'fishing',
-		          'firemaking',
-		          'crafting',
-		          'smithing',
-		          'mining',
-		          'herblore',
-		          'agility',
-		          'thieving',
-		          'slayer',
-		          'farming',
-		          'runecrafting',
-		          'hunter',
-		          'construction'
-		           ]
+skills = ['attack',
+          'defense',
+          'strength',
+          'hitpoints',
+          'ranged',
+          'prayer',
+          'magic',
+          'cooking',
+          'woodcutting',
+          'fletching',
+          'fishing',
+          'firemaking',
+          'crafting',
+          'smithing',
+          'mining',
+          'herblore',
+          'agility',
+          'thieving',
+          'slayer',
+          'farming',
+          'runecrafting',
+          'hunter',
+          'construction'
+           ]
 
 activities = [
     'league_points',
-    'bounty_hunter_bounty',
+    'bounty_hunter_hunter',
     'bounty_hunter_rogue',
-    'last_man_standing',
-    'soul_wars_zeal',
     'all_clues',
     'beginner_clues',
     'easy_clues',
     'medium_clues',
     'hard_clues',
     'elite_clues',
-    'master_clues'
+    'master_clues',
+    'last_man_standing',
+    'soul_wars_zeal',
 ]
 
 bosses = [
@@ -112,33 +112,52 @@ bosses = [
 ]
 
 counter = 0
+skills_mapping = {}
 for i in range(len(skills)):
     info = {}
     info['rank'] = int(data[counter+3])
     info['level'] = int(data[counter+4])
     info['experience'] = int(data[counter+5])
-    prev_subset[skills[i]] = info
+    skills_mapping[skills[i]] = info
     counter += 3
 
-skills_offset = len(skills)*3
+activities_mapping = {}
 for i in range(len(activities)):
     info = {}
     info['rank'] = int(data[counter+3])
     info['score'] = int(data[counter+4])
-    prev_subset[activities[i]] = info
+    activities_mapping[activities[i]] = info
     counter += 2
 
-activities_offset = len(skills)*3 + len(activities)*2
-print(len(data))
+bosses_mapping = {}
 for i in range(len(bosses)):
     info = {}
     info['rank'] = int(data[counter+3])
     info['score'] = int(data[counter+4])
-    prev_subset[bosses[i]] = info
+    bosses_mapping[bosses[i]] = info
     counter += 2
 
-print(data)
-print(prev_subset)
+new_item = {
+	'account_name': username,
+    'skills': skills_mapping,
+    'activities': activities_mapping,
+    'bosses': bosses_mapping,
+    'followers': ['discord_user_123']
+}
+
+db = boto3.resource('dynamodb')
+table = db.Table('osrs_account_stats')
+
+table.put_item(Item=new_item)
+
+response = table.get_item(Key={'account_name': username})
+print(response)
+item = response['Item']
+print(item)
+
+table.delete_item(Key={'account_name': username})
+
+
 
 # for i in range(10):
 #     time.sleep(120)
