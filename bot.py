@@ -5,6 +5,7 @@ import discord
 import random
 from discord.ext import commands
 from dotenv import load_dotenv
+import osrs
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -32,6 +33,15 @@ async def roll(ctx, number_of_dice: int, number_of_sides:int):
         for _ in range(number_of_dice)
     ]
     await ctx.send(', '.join(dice))
+
+@bot.command(name='getlevels', help='Gets the given accounts skill levels.')
+async def get_levels(ctx, *account_name):
+
+    username = ' '.join(account_name)
+    print('Recieved command to getlevels of %s' % username)
+    s = osrs.get_account_skills(username)
+    s = '```'+s+'```'
+    await ctx.send(s)
 
 @bot.command(name='create-channel')
 @commands.has_role('admin')
