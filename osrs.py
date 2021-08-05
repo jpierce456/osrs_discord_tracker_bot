@@ -4,6 +4,7 @@ from sys import exit
 import time
 import boto3
 from osrs_mapping import skills, activities, bosses
+import dynamodb
 
 
 
@@ -97,7 +98,23 @@ def get_account_skills(account_name):
     print(s)
     return s
 
+def add_account_to_db(account_name):
+    stats_response = get_account_stats(account_name)
+    if stats_response['status'] != 200:
+        return 'Error.'
+    stats_json = format_account_stats_json(stats_response['data'])
+    stats_json['account_name'] = account_name
+    stats_json['followers'] = []
+    dynamodb.add_to_table(stats_json)
 
+def remove_account_from_db(account_name):
+    dynamodb.remove_from_table(account_name)
+
+def add_account_follower(account_name, follower):
+    dynamodb.add_follower(account_name, follower)
+
+def remove_account_follower(account_name, follower):
+    dynamodb.remove_follower(account_name, follower)
 # username = 'hey_jase'
 # conn = http.client.HTTPSConnection('secure.runescape.com')
 # conn.request("GET", "/m=hiscore_oldschool/index_lite.ws?player={}".format(username.replace(' ', '%20')))
