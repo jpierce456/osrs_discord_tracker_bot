@@ -111,10 +111,15 @@ def remove_account_from_db(account_name):
     dynamodb.remove_from_table(account_name)
 
 def add_account_follower(account_name, follower):
+    if not dynamodb.in_table(account_name):
+        add_account_to_db(account_name)
     dynamodb.add_follower(account_name, follower)
+    # need to check to see if they are already follower and throw error if so
 
 def remove_account_follower(account_name, follower):
     dynamodb.remove_follower(account_name, follower)
+    # need to check if they can unfollow and throw error if they chaos_fanatic
+
 # username = 'hey_jase'
 # conn = http.client.HTTPSConnection('secure.runescape.com')
 # conn.request("GET", "/m=hiscore_oldschool/index_lite.ws?player={}".format(username.replace(' ', '%20')))

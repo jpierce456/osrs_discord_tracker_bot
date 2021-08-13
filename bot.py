@@ -6,6 +6,13 @@ import random
 from discord.ext import commands
 from dotenv import load_dotenv
 import osrs
+import logging
+
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -36,12 +43,23 @@ async def roll(ctx, number_of_dice: int, number_of_sides:int):
 
 @bot.command(name='getlevels', help='Gets the given accounts skill levels.')
 async def get_levels(ctx, *account_name):
-
     username = ' '.join(account_name)
     print('Recieved command to getlevels of %s' % username)
     s = osrs.get_account_skills(username)
     s = '```'+s+'```'
     await ctx.send(s)
+
+@bot.command(name='follow', help='Adds the user as a follower of the given osrs account')
+async def follow(ctx, *account_name):
+    username = ' '.join(account_name)
+    osrs.add_account_follower(username.lower(), ctx.author.id)
+    await ctx.author.send(f'You are now following {username}')
+
+@bot.command(name='unfollow', help='Removes the user as a follower of the given osrs account')
+async def unfollow(ctx, *account_name):
+    username = ' '.join(account_name)
+    osrs.remove_account_follower(username.lower(), ctx.author.id)
+    await ctx.author.send(f'You have unfollowed {username}')
 
 @bot.command(name='create-channel')
 @commands.has_role('admin')

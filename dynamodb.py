@@ -1,4 +1,5 @@
 import boto3
+from decimal import Decimal
 
 def get_osrs_table():
     db = boto3.resource('dynamodb')
@@ -12,6 +13,15 @@ def add_to_table(account_stats):
 def remove_from_table(account_name):
     table = get_osrs_table()
     table.delete_item(Key={'account_name': account_name})
+
+def in_table(account_name):
+    table = get_osrs_table()
+    response = table.get_item(
+        Key={
+            'account_name': account_name
+        }
+    )
+    return 'Item' in response
 
 def add_follower(account_name, follower):
     table = get_osrs_table()
@@ -35,15 +45,12 @@ def remove_follower(account_name, follower):
         ProjectionExpression='followers'
     )
     followers_list = account_stats['Item']['followers']
-    index = followers_list.index(follower)
-    print(index)
+    list_index = followers_list.index(follower)
+    print(list_index)
     table.update_item(
         Key={
             'account_name': account_name
         },
-        UpdateExpression='REMOVE followers[:i]',
-        ExpressionAttributeValues={
-            ':i': index,
-        },
+        UpdateExpression=f'REMOVE followers[{list_index}]',
         ReturnValues='UPDATED_NEW'
     )
