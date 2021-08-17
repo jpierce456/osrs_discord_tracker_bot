@@ -5,6 +5,7 @@ import time
 import boto3
 from osrs_mapping import skills, activities, bosses
 import dynamodb
+import status
 
 
 
@@ -83,7 +84,6 @@ def get_account_skills_string(account_data):
     return out_string
 
 def get_account_skills(account_name):
-
     print('getting account skills of account: ')
     print(account_name)
     stats_response = get_account_stats(account_name)
@@ -98,26 +98,43 @@ def get_account_skills(account_name):
     print(s)
     return s
 
-def add_account_to_db(account_name):
+def add_account_to_db(account_name: str) -> int:
     stats_response = get_account_stats(account_name)
     if stats_response['status'] != 200:
-        return 'Error.'
+        return status.ACCOUNT_DOES_NOT_EXIST
     stats_json = format_account_stats_json(stats_response['data'])
     stats_json['account_name'] = account_name
     stats_json['followers'] = []
     dynamodb.add_to_table(stats_json)
+    print('Here')
+    return status.SUCCESS
 
 def remove_account_from_db(account_name):
     dynamodb.remove_from_table(account_name)
 
-def add_account_follower(account_name, follower):
+def add_account_follower(account_name: str, follower: str) -> int:
     if not dynamodb.in_table(account_name):
-        add_account_to_db(account_name)
-    dynamodb.add_follower(account_name, follower)
-    # need to check to see if they are already follower and throw error if so
+        # add the account to the table if not already in the table
+        response = add_account_to_db(account_name)
+        if response != status.SUCCESS:
+            return response
 
-def remove_account_follower(account_name, follower):
+    followers_list = dynamodb.get_attribute(account_name, 'followers')
+    print(followers_list)
+    if follower not in followers_list:
+        dynamodb.add_follower(account_name, follower)
+        return status.SUCCESS
+    else:
+        return status.ALREADY_FOLLOWING
+
+def remove_account_follower(account_name:str, follower:str) -> int:
+    if not dynamodb.in_table(account_name):
+        # account is not followed by anyone
+        return status.ACCOUNT_NOT_IN_DB
+    if follower not in dynamodb.get_attribute(account_name, 'followers'):
+        return status.NOT_FOLLOWING
     dynamodb.remove_follower(account_name, follower)
+    return status.SUCCESS
     # need to check if they can unfollow and throw error if they chaos_fanatic
 
 # username = 'hey_jase'

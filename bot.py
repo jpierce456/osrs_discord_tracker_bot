@@ -52,14 +52,24 @@ async def get_levels(ctx, *account_name):
 @bot.command(name='follow', help='Adds the user as a follower of the given osrs account')
 async def follow(ctx, *account_name):
     username = ' '.join(account_name)
-    osrs.add_account_follower(username.lower(), ctx.author.id)
-    await ctx.author.send(f'You are now following {username}')
+    response = osrs.add_account_follower(username.lower(), ctx.author.id)
+    message = {
+        status.SUCCESS: f'You are now following {username}.',
+        status.ACCOUNT_DOES_NOT_EXIST: f'The account {username} does not exist.',
+        status.ALREADY_FOLLOWING: f'You are already following {username}.'
+    }
+    await ctx.author.send(message.get(response, 'Error.'))
 
 @bot.command(name='unfollow', help='Removes the user as a follower of the given osrs account')
 async def unfollow(ctx, *account_name):
     username = ' '.join(account_name)
-    osrs.remove_account_follower(username.lower(), ctx.author.id)
-    await ctx.author.send(f'You have unfollowed {username}')
+    response = osrs.remove_account_follower(username.lower(), ctx.author.id)
+    message = {
+        status.SUCCESS: f'You have unfollowed {username}.',
+        status.ACCOUNT_NOT_IN_DB: f'You were not following {username}.',
+        status.ALREADY_FOLLOWING: f'You were not following {username}.'
+    }
+    await ctx.author.send(meesage.get(response, 'Error.'))
 
 @bot.command(name='create-channel')
 @commands.has_role('admin')
