@@ -1,30 +1,44 @@
 import boto3
 from decimal import Decimal
 
-def get_osrs_table():
-    db = boto3.resource('dynamodb')
-    table = db.Table('osrs_account_stats')
-    return table
+def describe_table(table_name, dynamodb=None):
+    if not dynamodb:
+        dynamodb = boto3.client('dynamodb')
+    return dynamodb.describe_table(TableName=table_name)
 
-def add_to_table(account_stats):
-    table = get_osrs_table()
-    table.put_item(Item=account_stats)
-
-def remove_from_table(account_name):
-    table = get_osrs_table()
-    table.delete_item(Key={'account_name': account_name})
-
-def get_account(account_name):
-    table =get_osrs_table()
-    response = table.get_item(
-        Key={
-            'account_name': account_name
-        }
-    )
+def add_osrs_account_to_table(account_stats, dynamodb=None):
+    if not dynamodb:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('osrs_account_stats')
+    response = table.put_item(Item=account_stats)
     return response
 
-def in_table(account_name):
-    table = get_osrs_table()
+def remove_osrs_account_from_table(account_name, dynamodb=None):
+    if not dynamodb:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('osrs_account_stats')
+    response = table.delete_item(Key={'account_name': account_name})
+    return response
+
+def get_account(account_name, dynamodb=None):
+    if not dynamodb:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('osrs_account_stats')
+    try:
+        response = table.get_item(
+            Key={
+                'account_name': account_name
+            }
+        )
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+    else:
+        return response
+
+def in_table(account_name, dynamodb=None):
+    if not dynamodb:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('osrs_account_stats')
     response = table.get_item(
         Key={
             'account_name': account_name
@@ -32,8 +46,11 @@ def in_table(account_name):
     )
     return 'Item' in response
 
-def add_follower(account_name, follower):
-    table = get_osrs_table()
+def add_follower(account_name, follower, dynamodb=None):
+    if not dynamodb:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('osrs_account_stats')
+    
     table.update_item(
         Key={
             'account_name': account_name

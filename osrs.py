@@ -20,24 +20,26 @@ def format_account_stats_json(account_data):
     activities_mapping = {}
     bosses_mapping = {}
     for i in range(len(skills)):
-        skills_mapping[skills[i]] = {'rank': account_data[counter],
-                                     'level': account_data[counter+1],
-                                     'experience': account_data[counter+2]
+        if account_data[counter] != '-1':
+            skills_mapping[skills[i]] = {'rank': int(account_data[counter]),
+                                         'level': int(account_data[counter+1]),
+                                         'experience': int(account_data[counter+2])
         }
         counter+=3
 
     for i in range(len(activities)):
-        activities_mapping[activities[i]] = {'rank': account_data[counter],
-                                             'score': account_data[counter+1]
-        }
+        if account_data[counter] != '-1':
+            activities_mapping[activities[i]] = {'rank': int(account_data[counter]),
+                                                 'score': int(account_data[counter+1])
+            }
         counter+=2
 
     for i in range(len(bosses)):
-        bosses_mapping[bosses[i]] = {'rank': account_data[counter],
-                                     'score': account_data[counter+1]
-        }
+        if account_data[counter] != '-1':
+            bosses_mapping[bosses[i]] = {'rank': int(account_data[counter]),
+                                         'score': int(account_data[counter+1])
+            }
         counter+=2
-
     return {'skills': skills_mapping,
             'activities': activities_mapping,
             'bosses': bosses_mapping
@@ -84,18 +86,12 @@ def get_account_skills_string(account_data):
     return out_string
 
 def get_account_skills(account_name):
-    print('getting account skills of account: ')
     print(account_name)
     stats_response = get_account_stats(account_name)
-    print('Got account skills')
     if stats_response['status'] != 200:
         return 'Error.'
-    print('no error, formatting')
     stats_json = format_account_stats_json(stats_response['data'])
-    print('formatted into json, now formatting into string')
     s = get_account_skills_string(stats_json)
-    print('formatted into string, string is: ')
-    print(s)
     return s
 
 def add_account_to_db(account_name: str) -> int:
