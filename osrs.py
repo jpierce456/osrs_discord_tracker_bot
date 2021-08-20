@@ -10,7 +10,8 @@ import status
 
 
 def format_account_stats_json(account_data):
-    """ Input is the ordered list of numbers from the Old School Runescape
+    """
+    Input is the ordered list of numbers from the Old School Runescape
     hiscores api
     Output is the same data formatted in a json with key values
     corresponding to the data.
@@ -46,7 +47,8 @@ def format_account_stats_json(account_data):
     }
 
 def get_account_stats(account_name):
-    """ Input is the name of the account being looked up
+    """
+    Input is the name of the account being looked up
     The method accesses the hiscores api and returns the scores of the account
     in a list and the status of the http request.
     """
@@ -64,7 +66,8 @@ def get_account_stats(account_name):
     return {'status': status, 'data': data}
 
 def get_account_skills_string(account_data):
-    """Input is the json formatted account data
+    """
+    Input is the json formatted account data
     Output is a string formatted table
     """
     out_string = '-----------------------------------------------\n'
@@ -85,7 +88,11 @@ def get_account_skills_string(account_data):
     out_string += '-----------------------------------------------\n'
     return out_string
 
-def get_account_skills(account_name):
+def get_account_skills_message(account_name):
+    """
+    Input is the desired account name
+    Output is the discord formatted message containing the accounts skill levels
+    """
     print(account_name)
     stats_response = get_account_stats(account_name)
     if stats_response['status'] != 200:
@@ -94,236 +101,60 @@ def get_account_skills(account_name):
     s = get_account_skills_string(stats_json)
     return s
 
-def add_account_to_db(account_name: str) -> int:
+def add_account_to_db(account_name, db=None):
+    """
+    Input is the account name whos stats should be added to the db
+    Output is if the operation was successful or not
+    """
     stats_response = get_account_stats(account_name)
     if stats_response['status'] != 200:
         return status.ACCOUNT_DOES_NOT_EXIST
     stats_json = format_account_stats_json(stats_response['data'])
     stats_json['account_name'] = account_name
     stats_json['followers'] = []
-    dynamodb.add_to_table(stats_json)
-    print('Here')
+    response = dynamodb.add_osrs_account_to_table(stats_json, db)
     return status.SUCCESS
 
-def remove_account_from_db(account_name):
-    dynamodb.remove_from_table(account_name)
-
-def add_account_follower(account_name: str, follower: str) -> int:
+def add_account_follower(account_name, follower, db=None):
+    """
+    Input is the name of the account and follower
+    Output is if the operation was successful or not
+    """
     if not dynamodb.in_table(account_name):
-        # add the account to the table if not already in the table
-        response = add_account_to_db(account_name)
+        # Add the account to the table if not already in the table
+        response = add_account_to_db(account_name, db)
         if response != status.SUCCESS:
             return response
 
-    followers_list = dynamodb.get_attribute(account_name, 'followers')
-    print(followers_list)
+    # Add the follower if not already a follower
+    response = dynamodb.get_account(account_name, db)
+    followers_list = response['Item']['followers']
     if follower not in followers_list:
-        dynamodb.add_follower(account_name, follower)
+        response = dynamodb.add_follower(account_name, follower, db)
         return status.SUCCESS
     else:
         return status.ALREADY_FOLLOWING
 
-def remove_account_follower(account_name:str, follower:str) -> int:
+def remove_account_follower(account_name, follower, db=None):
+    """
+    Input is the name of the account and follower
+    Output is if the operation was successful or not
+    """
+    # Check if the account is in the db
     if not dynamodb.in_table(account_name):
-        # account is not followed by anyone
+        # Account is not followed by anyone
         return status.ACCOUNT_NOT_IN_DB
-    if follower not in dynamodb.get_attribute(account_name, 'followers'):
+
+    # Check if the account is being followed by follower
+    response = dynamodb.get_account(account_name, db)
+    followers_list = response['Item']['followers']
+    if follower not in followers_list:
         return status.NOT_FOLLOWING
     dynamodb.remove_follower(account_name, follower)
+
+    # If the account has no more followers remove it from the db
+    response = dynamodb.get_account(account_name, db)
+    followers = response['Item']['followers']
+    if len(followers) == 0:
+        response = dynamodb.remove_osrs_account_from_table(account_name, db)
     return status.SUCCESS
-    # need to check if they can unfollow and throw error if they chaos_fanatic
-
-# username = 'hey_jase'
-# conn = http.client.HTTPSConnection('secure.runescape.com')
-# conn.request("GET", "/m=hiscore_oldschool/index_lite.ws?player={}".format(username.replace(' ', '%20')))
-# response = conn.getresponse()
-# status = response.status
-# # print(status)
-#
-# data = response.read().decode('ascii')
-# data = data.replace('\n', ',')
-# data = data.split(',')
-# prev_subset = {}
-#
-# info = {}
-# info['rank'] = data[0]
-# info['level'] = data[1]
-# info['experience'] = data[2]
-# prev_subset['total'] = info
-# skills = ['attack',
-#           'defense',
-#           'strength',
-#           'hitpoints',
-#           'ranged',
-#           'prayer',
-#           'magic',
-#           'cooking',
-#           'woodcutting',
-#           'fletching',
-#           'fishing',
-#           'firemaking',
-#           'crafting',
-#           'smithing',
-#           'mining',
-#           'herblore',
-#           'agility',
-#           'thieving',
-#           'slayer',
-#           'farming',
-#           'runecrafting',
-#           'hunter',
-#           'construction'
-#            ]
-#
-# activities = [
-#     'league_points',
-#     'bounty_hunter_hunter',
-#     'bounty_hunter_rogue',
-#     'all_clues',
-#     'beginner_clues',
-#     'easy_clues',
-#     'medium_clues',
-#     'hard_clues',
-#     'elite_clues',
-#     'master_clues',
-#     'last_man_standing',
-#     'soul_wars_zeal',
-# ]
-#
-# bosses = [
-#     'abyssal_sire',
-#     'alchemical_hydra',
-#     'barrows',
-#     'byrophyta',
-#     'callisto',
-#     'cerberus',
-#     'chambers_of_xeric',
-#     'chambers_of_xeric_challenge_mode',
-#     'chaos_elemental',
-#     'chaos_fanatic',
-#     'commander_zilyana',
-#     'corporeal_beast',
-#     'crazy_archaeologist',
-#     'dagannoth_prime',
-#     'daggonoth_rex',
-#     'dagonnoth_supreme',
-#     'deranged_archaeologist',
-#     'general_graardor',
-#     'giant_mole',
-#     'grotesque_guardians',
-#     'hespori',
-#     'kalaphite_queen',
-#     'king_black_dragon',
-#     'kraken',
-#     'kreeArra',
-#     'krilTsutsaroth',
-#     'mimic',
-#     'nightmare',
-#     'phosanisNightmare',
-#     'obor',
-#     'sarachnis',
-#     'scorpia',
-#     'skotizo',
-#     'tempoross',
-#     'gauntlet',
-#     'corrupted_gauntlet',
-#     'theatre_of_blood',
-#     'theatre_of_blood_hard_mode',
-#     'thermonuclear_smoke_devil',
-#     'tzKalZuk',
-#     'tzTokJad',
-#     'venenatis',
-#     'vetion',
-#     'vorkath',
-#     'wintertodt',
-#     'zalcano',
-#     'zulrah'
-# ]
-#
-# counter = 0
-# skills_mapping = {}
-# for i in range(len(skills)):
-#     info = {}
-#     info['rank'] = int(data[counter+3])
-#     info['level'] = int(data[counter+4])
-#     info['experience'] = int(data[counter+5])
-#     skills_mapping[skills[i]] = info
-#     counter += 3
-#
-# activities_mapping = {}
-# for i in range(len(activities)):
-#     info = {}
-#     info['rank'] = int(data[counter+3])
-#     info['score'] = int(data[counter+4])
-#     activities_mapping[activities[i]] = info
-#     counter += 2
-#
-# bosses_mapping = {}
-# for i in range(len(bosses)):
-#     info = {}
-#     info['rank'] = int(data[counter+3])
-#     info['score'] = int(data[counter+4])
-#     bosses_mapping[bosses[i]] = info
-#     counter += 2
-#
-# new_item = {
-# 	'account_name': username,
-#     'skills': skills_mapping,
-#     'activities': activities_mapping,
-#     'bosses': bosses_mapping,
-#     'followers': ['discord_user_123']
-# }
-#
-# db = boto3.resource('dynamodb')
-# table = db.Table('osrs_account_stats')
-#
-# table.put_item(Item=new_item)
-#
-# response = table.get_item(Key={'account_name': username})
-# print(response)
-# item = response['Item']
-# print(item)
-#
-# table.delete_item(Key={'account_name': username})
-
-
-
-# for i in range(10):
-#     time.sleep(120)
-#
-#     conn = http.client.HTTPSConnection('secure.runescape.com')
-#     conn.request("GET", "/m=hiscore_oldschool/index_lite.ws?player={}".format(username.replace(' ', '%20')))
-#     response = conn.getresponse()
-#     status = response.status
-#     print(status)
-#
-#     data = response.read().decode('ascii')
-#     data = data.replace('\n', ',')
-#     data = data.split(',')
-#     curr_subset = {}
-#
-#     info = {}
-#     info['rank'] = data[0]
-#     info['level'] = data[1]
-#     info['experience'] = data[2]
-#     curr_subset['total'] = info
-#
-#     counter = 0
-#     for i in range(len(skills)):
-#         info = {}
-#         info['rank'] = int(data[counter+3])
-#         info['level'] = int(data[counter+4])
-#         info['experience'] = int(data[counter+5])
-#         curr_subset[skills[i]] = info
-#         counter += 3
-#
-#     if prev_subset['total']['experience'] != curr_subset['total']['experience']:
-#         for skill in skills:
-#             if prev_subset[skill]['experience'] != curr_subset[skill]['experience']:
-#                 diff = curr_subset[skill]['experience'] - prev_subset[skill]['experience']
-#                 print('+ '+str(diff)+' '+skill)
-#     else:
-#         print('No change')
-#
-#     prev_subset = curr_subset
-#

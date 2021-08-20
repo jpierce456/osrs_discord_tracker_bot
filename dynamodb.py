@@ -50,8 +50,8 @@ def add_follower(account_name, follower, dynamodb=None):
     if not dynamodb:
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
     table = dynamodb.Table('osrs_account_stats')
-    
-    table.update_item(
+
+    response = table.update_item(
         Key={
             'account_name': account_name
         },
@@ -61,23 +61,22 @@ def add_follower(account_name, follower, dynamodb=None):
         },
         ReturnValues='UPDATED_NEW'
     )
+    return response
 
-def remove_follower(account_name, follower):
-    table = get_osrs_table()
-    table.update_item(
+def remove_follower(account_name, follower, dynamodb=None):
+    if not dynamodb:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('osrs_account_stats')
+
+    response = get_account(account_name, dynamodb)
+    followers = response['Item']['followers']
+    list_index = followers.index(follower)
+
+    response = table.update_item(
         Key={
             'account_name': account_name
         },
         UpdateExpression=f'REMOVE followers[{list_index}]',
         ReturnValues='UPDATED_NEW'
     )
-
-def get_attribute(account_name, attribute):
-    table = get_osrs_table()
-    response = get_account(account_name)
-    if 'Item' not in response: # there is no account with that name
-        return None
-    elif attribute not in response['Item']: # account does not have that attribute
-        return None
-    else:
-        return response['Item'][attribute]
+    return response
