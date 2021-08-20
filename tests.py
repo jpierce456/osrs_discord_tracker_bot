@@ -60,6 +60,34 @@ class TestDatabaseFunctions(unittest.TestCase):
                 }
             }
         }
+        self.test_osrs_account_stats_second = {
+            'account_name': 'second_test_account',
+            'followers': [],
+            'skills': {
+                'overall': {
+                    'rank': 73,
+                    'level': 2277,
+                    'experience': 4321000000
+                },
+                'attack': {
+                    'rank': 1,
+                    'level': 99,
+                    'experience': 200000000
+                }
+            },
+            'activities': {
+                'last_man_standing': {
+                    'rank': 22,
+                    'score': 2222
+                }
+            },
+            'bosses': {
+                'barrows': {
+                    'rank': 39,
+                    'score': 3030
+                }
+            }
+        }
 
     def tearDown(self):
         """
@@ -130,6 +158,19 @@ class TestDatabaseFunctions(unittest.TestCase):
         response = dynamodb.get_account('Fake_Account_12345', self.dynamodb)
         self.assertEqual(200, response['ResponseMetadata']['HTTPStatusCode'])
         self.assertFalse('Item' in response)
+
+    def test_get_all_osrs_account_from_table(self):
+        """
+        Test getting all accounts from the table
+        """
+        response = dynamodb.add_osrs_account_to_table(self.test_osrs_account_stats, self.dynamodb)
+        self.assertEqual(200, response['ResponseMetadata']['HTTPStatusCode'])
+        response = dynamodb.add_osrs_account_to_table(self.test_osrs_account_stats_second, self.dynamodb)
+        self.assertEqual(200, response['ResponseMetadata']['HTTPStatusCode'])
+
+        response = dynamodb.get_all_accounts(self.dynamodb)
+        self.assertEqual(200, response['ResponseMetadata']['HTTPStatusCode'])
+        self.assertEqual(2, len(response['Items']))
 
     def test_remove_osrs_account_from_table(self):
         """
@@ -266,6 +307,7 @@ class TestDatabaseFunctions(unittest.TestCase):
         response = osrs.remove_account_follower('Lynx Titan', 'test_follower_789', self.dynamodb)
         self.assertEqual(status.SUCCESS, response)
         self.assertFalse(dynamodb.in_table('Lynx Titan', self.dynamodb))
+
 
 
 if __name__ == '__main__':

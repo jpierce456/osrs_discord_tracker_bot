@@ -20,6 +20,13 @@ def remove_osrs_account_from_table(account_name, dynamodb=None):
     response = table.delete_item(Key={'account_name': account_name})
     return response
 
+def get_all_accounts(dynamodb=None):
+    if not dynamodb:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('osrs_account_stats')
+    response = table.scan()
+    return response
+
 def get_account(account_name, dynamodb=None):
     if not dynamodb:
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')

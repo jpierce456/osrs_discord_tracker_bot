@@ -158,3 +158,19 @@ def remove_account_follower(account_name, follower, db=None):
     if len(followers) == 0:
         response = dynamodb.remove_osrs_account_from_table(account_name, db)
     return status.SUCCESS
+
+def generate_updates(db=None):
+    response = dynamodb.get_all_accounts(db)
+    accounts = response['Items']
+    for account_db in accounts:
+        account_name = account_db['account_name']
+        stats_response = get_account_stats(account_name)
+        if stats_response['status'] != 200:
+            # The account no longer exists??
+            break
+        account_api = format_account_stats_json(stats_response['data'])
+
+        for boss in account_db['bosses']:
+            diff = account_api['bosses'][boss]['score'] - int(account_db['bosses'][boss]['score'])
+            if diff != 0:
+                print(boss, '+', diff)

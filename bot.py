@@ -3,10 +3,11 @@ import os
 
 import discord
 import random
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import osrs
 import logging
+import status
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -18,6 +19,10 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 bot = commands.Bot(command_prefix='!')
+
+@bot.command(name='dm', help='Test dm functionality')
+async def dm(ctx):
+    await ctx.author.send('Hello!')
 
 @bot.command(name='getlevels', help='Gets the given accounts skill levels.')
 async def get_levels(ctx, *account_name):
@@ -47,10 +52,18 @@ async def unfollow(ctx, *account_name):
         status.ACCOUNT_NOT_IN_DB: f'You were not following {username}.',
         status.ALREADY_FOLLOWING: f'You were not following {username}.'
     }
-    await ctx.author.send(meesage.get(response, 'Error.'))
+    print(message.get(response, 'Error.'))
+    await ctx.author.send(message.get(response, 'Error.'))
 
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.errors.CheckFailure):
-        await ctx.send('You do not have the correct role for this command.')
+@tasks.loop(seconds=300) # 5 minutes
+async def send_message():
+    user = await bot.fetch_user(184861883767980032)
+    await user.send("Hi!")
+
+# @bot.event
+# async def on_command_error(ctx, error):
+#     if isinstance(error, commands.errors.CheckFailure):
+#         await ctx.send('You do not have the correct role for this command.')
+send_message.start()
+
 bot.run(TOKEN)
