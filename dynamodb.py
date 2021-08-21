@@ -87,3 +87,16 @@ def remove_follower(account_name, follower, dynamodb=None):
         ReturnValues='UPDATED_NEW'
     )
     return response
+
+def update_attribute(account_name, attribute, data, dynamodb=None):
+    if not dynamodb:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table('osrs_account_stats')
+
+    response = table.update_item(
+        Key={
+            'account_name', account_name
+        },
+        UpdateExpression=f'SET {attribute}'
+
+    )

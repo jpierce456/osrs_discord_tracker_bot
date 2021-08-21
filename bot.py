@@ -57,8 +57,14 @@ async def unfollow(ctx, *account_name):
 
 @tasks.loop(seconds=300) # 5 minutes
 async def send_message():
-    user = await bot.fetch_user(184861883767980032)
-    await user.send("Hi!")
+    updates = osrs.update_tuples()
+    for update in updates:
+        for follower_id in update[1]:
+            user = await bot.fetch_user(follower_id)
+            await user.send('```'+update[0]+'```')
+
+    # user = await bot.fetch_user(184861883767980032)
+    # await user.send("Hi!")
 
 # @bot.event
 # async def on_command_error(ctx, error):
